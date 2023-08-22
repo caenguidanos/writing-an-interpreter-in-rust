@@ -10,6 +10,10 @@ impl<'a> Lexer<'a> {
         Self { chars, cursor: 0 }
     }
 
+    fn step(&mut self) {
+        self.cursor += 1;
+    }
+
     fn is_alphabetic(ch: &char) -> bool {
         ch.is_ascii_alphabetic() || ch == &'_'
     }
@@ -22,17 +26,17 @@ impl<'a> Lexer<'a> {
         ch.is_ascii_digit()
     }
 
-    fn handle_symbol(ch: char) -> Option<Token> {
+    fn handle_symbol(ch: char) -> Token {
         match ch {
-            '=' => Some(Token::Assign(vec![ch])),
-            ',' => Some(Token::Comma(vec![ch])),
-            '{' => Some(Token::LeftBrace(vec![ch])),
-            '(' => Some(Token::LeftParen(vec![ch])),
-            '+' => Some(Token::Plus(vec![ch])),
-            '}' => Some(Token::RightBrace(vec![ch])),
-            ')' => Some(Token::RightParen(vec![ch])),
-            ';' => Some(Token::Semicolon(vec![ch])),
-            _ => None,
+            '=' => Token::Assign(vec![ch]),
+            ',' => Token::Comma(vec![ch]),
+            '{' => Token::LeftBrace(vec![ch]),
+            '(' => Token::LeftParen(vec![ch]),
+            '+' => Token::Plus(vec![ch]),
+            '}' => Token::RightBrace(vec![ch]),
+            ')' => Token::RightParen(vec![ch]),
+            ';' => Token::Semicolon(vec![ch]),
+            _ => Token::Illegal(vec![ch]),
         }
     }
 
@@ -52,7 +56,7 @@ impl<'a> Iterator for Lexer<'a> {
         match self.chars.get(self.cursor) {
             Some(mut curr) => {
                 while Self::is_whitespace(curr) {
-                    self.cursor += 1;
+                    self.step();
 
                     if let Some(next) = self.chars.get(self.cursor) {
                         curr = next;
@@ -65,7 +69,7 @@ impl<'a> Iterator for Lexer<'a> {
                     let mut chars = Vec::new();
 
                     while Self::is_alphabetic(curr) {
-                        self.cursor += 1;
+                        self.step();
 
                         chars.push(curr.to_owned());
 
@@ -83,7 +87,7 @@ impl<'a> Iterator for Lexer<'a> {
                     let mut chars = Vec::new();
 
                     while Self::is_digit(curr) {
-                        self.cursor += 1;
+                        self.step();
 
                         chars.push(curr.to_owned());
 
@@ -97,15 +101,9 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Token::Integer(chars));
                 }
 
-                if let Some(symbol_token) = Self::handle_symbol(curr.to_owned()) {
-                    self.cursor += 1;
+                self.step();
 
-                    return Some(symbol_token);
-                }
-
-                self.cursor += 1;
-
-                Some(Token::Illegal(vec![curr.to_owned()]))
+                Some(Self::handle_symbol(curr.to_owned()))
             }
             _ => None,
         }
@@ -114,11 +112,15 @@ impl<'a> Iterator for Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
+    extern crate test;
+
+    use test::{black_box, Bencher};
+
     use crate::lexer::Lexer;
     use crate::token::Token;
 
     #[test]
-    fn it_must_iterate() {
+    fn next() {
         let input = r#"
             let five = 5;
             let ten = 10;
@@ -175,5 +177,25 @@ mod tests {
             expected_output,
             Lexer::new(&input_as_chars).collect::<Vec<Token>>()
         );
+    }
+
+    #[bench]
+    fn bench_next(b: &mut Bencher) {
+        let input = r#"
+            let five = 5;
+            let ten = 10;
+
+            let add = fn(x, y) {
+                x + y;
+            };
+
+            let result = add(five, ten);
+        "#;
+
+        let input_as_chars = input.chars().collect::<Vec<char>>();
+
+        b.iter(|| {
+            black_box(Lexer::new(&input_as_chars).collect::<Vec<Token>>());
+        });
     }
 }
