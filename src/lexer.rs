@@ -1,50 +1,50 @@
 use crate::token::Token;
 
 pub struct Lexer<'a> {
-    chars: &'a Vec<char>,
+    bytes: &'a [u8],
     cursor: usize,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(chars: &'a Vec<char>) -> Self {
-        Self { chars, cursor: 0 }
+    pub fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes, cursor: 0 }
     }
 
-    fn step(&mut self) {
+    fn move_step(&mut self) {
         self.cursor += 1;
     }
 
-    fn is_alphabetic(ch: &char) -> bool {
-        ch.is_ascii_alphabetic() || ch == &'_'
+    fn is_alphabetic(byte: &u8) -> bool {
+        byte.is_ascii_alphabetic() || byte == &b'_'
     }
 
-    fn is_whitespace(ch: &char) -> bool {
-        ch.is_ascii_whitespace()
+    fn is_whitespace(byte: &u8) -> bool {
+        byte.is_ascii_whitespace()
     }
 
-    fn is_digit(ch: &char) -> bool {
-        ch.is_ascii_digit()
+    fn is_digit(byte: &u8) -> bool {
+        byte.is_ascii_digit()
     }
 
-    fn handle_symbol(ch: char) -> Token {
-        match ch {
-            '=' => Token::Assign(vec![ch]),
-            ',' => Token::Comma(vec![ch]),
-            '{' => Token::LeftBrace(vec![ch]),
-            '(' => Token::LeftParen(vec![ch]),
-            '+' => Token::Plus(vec![ch]),
-            '}' => Token::RightBrace(vec![ch]),
-            ')' => Token::RightParen(vec![ch]),
-            ';' => Token::Semicolon(vec![ch]),
-            _ => Token::Illegal(vec![ch]),
+    fn handle_symbol(byte: u8) -> Token {
+        match byte {
+            b'=' => Token::Assign,
+            b',' => Token::Comma,
+            b'{' => Token::LeftBrace,
+            b'(' => Token::LeftParen,
+            b'+' => Token::Plus,
+            b'}' => Token::RightBrace,
+            b')' => Token::RightParen,
+            b';' => Token::Semicolon,
+            _ => Token::Illegal(vec![byte]),
         }
     }
 
-    fn handle_ident(chars: Vec<char>) -> Option<Token> {
-        return match chars.as_slice() {
-            ['f', 'n'] => Some(Token::Function(chars)),
-            ['l', 'e', 't'] => Some(Token::Let(chars)),
-            _ => Some(Token::Identifier(chars)),
+    fn handle_ident(bytes: Vec<u8>) -> Option<Token> {
+        return match bytes.as_slice() {
+            [b'f', b'n'] => Some(Token::Function(bytes)),
+            [b'l', b'e', b't'] => Some(Token::Let),
+            _ => Some(Token::Identifier(bytes)),
         };
     }
 }
@@ -53,12 +53,12 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.chars.get(self.cursor) {
+        match self.bytes.get(self.cursor) {
             Some(mut curr) => {
                 while Self::is_whitespace(curr) {
-                    self.step();
+                    self.move_step();
 
-                    if let Some(next) = self.chars.get(self.cursor) {
+                    if let Some(next) = self.bytes.get(self.cursor) {
                         curr = next;
                     } else {
                         return None;
@@ -66,42 +66,42 @@ impl<'a> Iterator for Lexer<'a> {
                 }
 
                 if Self::is_alphabetic(curr) {
-                    let mut chars = Vec::new();
+                    let mut bytes = Vec::new();
 
                     while Self::is_alphabetic(curr) {
-                        self.step();
+                        self.move_step();
 
-                        chars.push(curr.to_owned());
+                        bytes.push(curr.to_owned());
 
-                        if let Some(next) = self.chars.get(self.cursor) {
+                        if let Some(next) = self.bytes.get(self.cursor) {
                             curr = next;
                         } else {
                             return None;
                         }
                     }
 
-                    return Self::handle_ident(chars);
+                    return Self::handle_ident(bytes);
                 }
 
                 if Self::is_digit(curr) {
-                    let mut chars = Vec::new();
+                    let mut bytes = Vec::new();
 
                     while Self::is_digit(curr) {
-                        self.step();
+                        self.move_step();
 
-                        chars.push(curr.to_owned());
+                        bytes.push(curr.to_owned());
 
-                        if let Some(next) = self.chars.get(self.cursor) {
+                        if let Some(next) = self.bytes.get(self.cursor) {
                             curr = next;
                         } else {
                             return None;
                         }
                     }
 
-                    return Some(Token::Integer(chars));
+                    return Some(Token::Integer(bytes));
                 }
 
-                self.step();
+                self.move_step();
 
                 Some(Self::handle_symbol(curr.to_owned()))
             }
@@ -114,7 +114,7 @@ impl<'a> Iterator for Lexer<'a> {
 mod tests {
     extern crate test;
 
-    use test::{black_box, Bencher};
+    use test::Bencher;
 
     use crate::lexer::Lexer;
     use crate::token::Token;
@@ -132,50 +132,50 @@ mod tests {
             let result = add(five, ten);
         "#;
 
-        let input_as_chars = input.chars().collect::<Vec<char>>();
+        let bytes = input.bytes().collect::<Vec<u8>>();
 
         let expected_output = vec![
-            Token::Let(vec!['l', 'e', 't']),
-            Token::Identifier(vec!['f', 'i', 'v', 'e']),
-            Token::Assign(vec!['=']),
-            Token::Integer(vec!['5']),
-            Token::Semicolon(vec![';']),
-            Token::Let(vec!['l', 'e', 't']),
-            Token::Identifier(vec!['t', 'e', 'n']),
-            Token::Assign(vec!['=']),
-            Token::Integer(vec!['1', '0']),
-            Token::Semicolon(vec![';']),
-            Token::Let(vec!['l', 'e', 't']),
-            Token::Identifier(vec!['a', 'd', 'd']),
-            Token::Assign(vec!['=']),
-            Token::Function(vec!['f', 'n']),
-            Token::LeftParen(vec!['(']),
-            Token::Identifier(vec!['x']),
-            Token::Comma(vec![',']),
-            Token::Identifier(vec!['y']),
-            Token::RightParen(vec![')']),
-            Token::LeftBrace(vec!['{']),
-            Token::Identifier(vec!['x']),
-            Token::Plus(vec!['+']),
-            Token::Identifier(vec!['y']),
-            Token::Semicolon(vec![';']),
-            Token::RightBrace(vec!['}']),
-            Token::Semicolon(vec![';']),
-            Token::Let(vec!['l', 'e', 't']),
-            Token::Identifier(vec!['r', 'e', 's', 'u', 'l', 't']),
-            Token::Assign(vec!['=']),
-            Token::Identifier(vec!['a', 'd', 'd']),
-            Token::LeftParen(vec!['(']),
-            Token::Identifier(vec!['f', 'i', 'v', 'e']),
-            Token::Comma(vec![',']),
-            Token::Identifier(vec!['t', 'e', 'n']),
-            Token::RightParen(vec![')']),
-            Token::Semicolon(vec![';']),
+            Token::Let,
+            Token::Identifier(vec![b'f', b'i', b'v', b'e']),
+            Token::Assign,
+            Token::Integer(vec![b'5']),
+            Token::Semicolon,
+            Token::Let,
+            Token::Identifier(vec![b't', b'e', b'n']),
+            Token::Assign,
+            Token::Integer(vec![b'1', b'0']),
+            Token::Semicolon,
+            Token::Let,
+            Token::Identifier(vec![b'a', b'd', b'd']),
+            Token::Assign,
+            Token::Function(vec![b'f', b'n']),
+            Token::LeftParen,
+            Token::Identifier(vec![b'x']),
+            Token::Comma,
+            Token::Identifier(vec![b'y']),
+            Token::RightParen,
+            Token::LeftBrace,
+            Token::Identifier(vec![b'x']),
+            Token::Plus,
+            Token::Identifier(vec![b'y']),
+            Token::Semicolon,
+            Token::RightBrace,
+            Token::Semicolon,
+            Token::Let,
+            Token::Identifier(vec![b'r', b'e', b's', b'u', b'l', b't']),
+            Token::Assign,
+            Token::Identifier(vec![b'a', b'd', b'd']),
+            Token::LeftParen,
+            Token::Identifier(vec![b'f', b'i', b'v', b'e']),
+            Token::Comma,
+            Token::Identifier(vec![b't', b'e', b'n']),
+            Token::RightParen,
+            Token::Semicolon,
         ];
 
         assert_eq!(
             expected_output,
-            Lexer::new(&input_as_chars).collect::<Vec<Token>>()
+            Lexer::new(bytes.as_slice()).collect::<Vec<Token>>()
         );
     }
 
@@ -192,10 +192,11 @@ mod tests {
             let result = add(five, ten);
         "#;
 
-        let input_as_chars = input.chars().collect::<Vec<char>>();
+        let bytes = input.bytes().collect::<Vec<u8>>();
+        let bytes_as_slice = bytes.as_slice();
 
         b.iter(|| {
-            black_box(Lexer::new(&input_as_chars).collect::<Vec<Token>>());
+            let _ = Lexer::new(bytes_as_slice).collect::<Vec<Token>>();
         });
     }
 }
