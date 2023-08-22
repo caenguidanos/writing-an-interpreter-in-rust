@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenMetadata};
+use crate::token::Token;
 
 pub struct Lexer<'a> {
     chars: &'a Vec<char>,
@@ -24,39 +24,23 @@ impl<'a> Lexer<'a> {
 
     fn handle_symbol(ch: char) -> Option<Token> {
         match ch {
-            '=' => Some(Token::Assign(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            ',' => Some(Token::Comma(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            '{' => Some(Token::LeftBrace(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            '(' => Some(Token::LeftParen(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            '+' => Some(Token::Plus(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            '}' => Some(Token::RightBrace(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            ')' => Some(Token::RightParen(TokenMetadata {
-                literal: String::from(ch),
-            })),
-            ';' => Some(Token::Semicolon(TokenMetadata {
-                literal: String::from(ch),
-            })),
+            '=' => Some(Token::Assign(vec![ch])),
+            ',' => Some(Token::Comma(vec![ch])),
+            '{' => Some(Token::LeftBrace(vec![ch])),
+            '(' => Some(Token::LeftParen(vec![ch])),
+            '+' => Some(Token::Plus(vec![ch])),
+            '}' => Some(Token::RightBrace(vec![ch])),
+            ')' => Some(Token::RightParen(vec![ch])),
+            ';' => Some(Token::Semicolon(vec![ch])),
             _ => None,
         }
     }
 
-    fn handle_ident(literal: String) -> Option<Token> {
-        return match literal.as_str() {
-            "fn" => Some(Token::Function(TokenMetadata { literal })),
-            "let" => Some(Token::Let(TokenMetadata { literal })),
-            _ => Some(Token::Identifier(TokenMetadata { literal })),
+    fn handle_ident(chars: Vec<char>) -> Option<Token> {
+        return match chars.as_slice() {
+            ['f', 'n'] => Some(Token::Function(chars)),
+            ['l', 'e', 't'] => Some(Token::Let(chars)),
+            _ => Some(Token::Identifier(chars)),
         };
     }
 }
@@ -78,12 +62,12 @@ impl<'a> Iterator for Lexer<'a> {
                 }
 
                 if Self::is_alphabetic(curr) {
-                    let mut literal = String::new();
+                    let mut chars = Vec::new();
 
                     while Self::is_alphabetic(curr) {
                         self.cursor += 1;
 
-                        literal.push(curr.to_owned());
+                        chars.push(curr.to_owned());
 
                         if let Some(next) = self.chars.get(self.cursor) {
                             curr = next;
@@ -92,16 +76,16 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    return Self::handle_ident(literal);
+                    return Self::handle_ident(chars);
                 }
 
                 if Self::is_digit(curr) {
-                    let mut literal = String::new();
+                    let mut chars = Vec::new();
 
                     while Self::is_digit(curr) {
                         self.cursor += 1;
 
-                        literal.push(curr.to_owned());
+                        chars.push(curr.to_owned());
 
                         if let Some(next) = self.chars.get(self.cursor) {
                             curr = next;
@@ -110,7 +94,7 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    return Some(Token::Integer(TokenMetadata { literal }));
+                    return Some(Token::Integer(chars));
                 }
 
                 if let Some(symbol_token) = Self::handle_symbol(curr.to_owned()) {
@@ -121,9 +105,7 @@ impl<'a> Iterator for Lexer<'a> {
 
                 self.cursor += 1;
 
-                Some(Token::Illegal(TokenMetadata {
-                    literal: String::from(curr.to_owned()),
-                }))
+                Some(Token::Illegal(vec![curr.to_owned()]))
             }
             _ => None,
         }
@@ -133,7 +115,7 @@ impl<'a> Iterator for Lexer<'a> {
 #[cfg(test)]
 mod tests {
     use crate::lexer::Lexer;
-    use crate::token::{Token, TokenMetadata};
+    use crate::token::Token;
 
     #[test]
     fn it_must_iterate() {
@@ -151,114 +133,42 @@ mod tests {
         let input_as_chars = input.chars().collect::<Vec<char>>();
 
         let expected_output = vec![
-            Token::Let(TokenMetadata {
-                literal: String::from("let"),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("five"),
-            }),
-            Token::Assign(TokenMetadata {
-                literal: String::from("="),
-            }),
-            Token::Integer(TokenMetadata {
-                literal: String::from("5"),
-            }),
-            Token::Semicolon(TokenMetadata {
-                literal: String::from(";"),
-            }),
-            Token::Let(TokenMetadata {
-                literal: String::from("let"),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("ten"),
-            }),
-            Token::Assign(TokenMetadata {
-                literal: String::from("="),
-            }),
-            Token::Integer(TokenMetadata {
-                literal: String::from("10"),
-            }),
-            Token::Semicolon(TokenMetadata {
-                literal: String::from(";"),
-            }),
-            Token::Let(TokenMetadata {
-                literal: String::from("let"),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("add"),
-            }),
-            Token::Assign(TokenMetadata {
-                literal: String::from("="),
-            }),
-            Token::Function(TokenMetadata {
-                literal: String::from("fn"),
-            }),
-            Token::LeftParen(TokenMetadata {
-                literal: String::from("("),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("x"),
-            }),
-            Token::Comma(TokenMetadata {
-                literal: String::from(","),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("y"),
-            }),
-            Token::RightParen(TokenMetadata {
-                literal: String::from(")"),
-            }),
-            Token::LeftBrace(TokenMetadata {
-                literal: String::from("{"),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("x"),
-            }),
-            Token::Plus(TokenMetadata {
-                literal: String::from("+"),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("y"),
-            }),
-            Token::Semicolon(TokenMetadata {
-                literal: String::from(";"),
-            }),
-            Token::RightBrace(TokenMetadata {
-                literal: String::from("}"),
-            }),
-            Token::Semicolon(TokenMetadata {
-                literal: String::from(";"),
-            }),
-            Token::Let(TokenMetadata {
-                literal: String::from("let"),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("result"),
-            }),
-            Token::Assign(TokenMetadata {
-                literal: String::from("="),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("add"),
-            }),
-            Token::LeftParen(TokenMetadata {
-                literal: String::from("("),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("five"),
-            }),
-            Token::Comma(TokenMetadata {
-                literal: String::from(","),
-            }),
-            Token::Identifier(TokenMetadata {
-                literal: String::from("ten"),
-            }),
-            Token::RightParen(TokenMetadata {
-                literal: String::from(")"),
-            }),
-            Token::Semicolon(TokenMetadata {
-                literal: String::from(";"),
-            }),
+            Token::Let(vec!['l', 'e', 't']),
+            Token::Identifier(vec!['f', 'i', 'v', 'e']),
+            Token::Assign(vec!['=']),
+            Token::Integer(vec!['5']),
+            Token::Semicolon(vec![';']),
+            Token::Let(vec!['l', 'e', 't']),
+            Token::Identifier(vec!['t', 'e', 'n']),
+            Token::Assign(vec!['=']),
+            Token::Integer(vec!['1', '0']),
+            Token::Semicolon(vec![';']),
+            Token::Let(vec!['l', 'e', 't']),
+            Token::Identifier(vec!['a', 'd', 'd']),
+            Token::Assign(vec!['=']),
+            Token::Function(vec!['f', 'n']),
+            Token::LeftParen(vec!['(']),
+            Token::Identifier(vec!['x']),
+            Token::Comma(vec![',']),
+            Token::Identifier(vec!['y']),
+            Token::RightParen(vec![')']),
+            Token::LeftBrace(vec!['{']),
+            Token::Identifier(vec!['x']),
+            Token::Plus(vec!['+']),
+            Token::Identifier(vec!['y']),
+            Token::Semicolon(vec![';']),
+            Token::RightBrace(vec!['}']),
+            Token::Semicolon(vec![';']),
+            Token::Let(vec!['l', 'e', 't']),
+            Token::Identifier(vec!['r', 'e', 's', 'u', 'l', 't']),
+            Token::Assign(vec!['=']),
+            Token::Identifier(vec!['a', 'd', 'd']),
+            Token::LeftParen(vec!['(']),
+            Token::Identifier(vec!['f', 'i', 'v', 'e']),
+            Token::Comma(vec![',']),
+            Token::Identifier(vec!['t', 'e', 'n']),
+            Token::RightParen(vec![')']),
+            Token::Semicolon(vec![';']),
         ];
 
         assert_eq!(
