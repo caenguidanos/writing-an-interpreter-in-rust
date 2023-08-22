@@ -1,24 +1,21 @@
 use crate::token::{Token, TokenMetadata};
 
-pub struct Lexer {
-    chars: Vec<char>,
+pub struct Lexer<'a> {
+    chars: &'a Vec<char>,
     cursor: usize,
 }
 
-impl Lexer {
-    pub fn new(input: &str) -> Self {
-        Self {
-            chars: input.chars().collect::<Vec<char>>(),
-            cursor: 0,
-        }
+impl<'a> Lexer<'a> {
+    pub fn new(chars: &'a Vec<char>) -> Self {
+        Self { chars, cursor: 0 }
     }
 
-    fn is_letter(ch: &char) -> bool {
-        matches!(ch, 'a'..='z' | 'A'..='Z' | '_' )
+    fn is_alphabetic(ch: &char) -> bool {
+        ch.is_ascii_alphabetic() || ch == &'_'
     }
 
     fn is_whitespace(ch: &char) -> bool {
-        matches!(ch, ' ' | '\t' | '\n' | '\r')
+        ch.is_ascii_whitespace()
     }
 
     fn is_digit(ch: &char) -> bool {
@@ -64,7 +61,7 @@ impl Lexer {
     }
 }
 
-impl Iterator for Lexer {
+impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -80,10 +77,10 @@ impl Iterator for Lexer {
                     }
                 }
 
-                if Self::is_letter(curr) {
+                if Self::is_alphabetic(curr) {
                     let mut literal = String::new();
 
-                    while Self::is_letter(curr) {
+                    while Self::is_alphabetic(curr) {
                         self.cursor += 1;
 
                         literal.push(curr.to_owned());
@@ -139,7 +136,7 @@ mod tests {
     use crate::token::{Token, TokenMetadata};
 
     #[test]
-    fn next_token() {
+    fn it_must_iterate() {
         let input = r#"
             let five = 5;
             let ten = 10;
@@ -150,6 +147,8 @@ mod tests {
 
             let result = add(five, ten);
         "#;
+
+        let input_as_chars = input.chars().collect::<Vec<char>>();
 
         let expected_output = vec![
             Token::Let(TokenMetadata {
@@ -262,8 +261,9 @@ mod tests {
             }),
         ];
 
-        let output = Lexer::new(input).collect::<Vec<Token>>();
-
-        assert_eq!(expected_output, output);
+        assert_eq!(
+            expected_output,
+            Lexer::new(&input_as_chars).collect::<Vec<Token>>()
+        );
     }
 }
