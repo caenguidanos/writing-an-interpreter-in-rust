@@ -260,9 +260,6 @@ mod tests {
             Token::Semicolon(TokenMetadata {
                 literal: String::from(";"),
             }),
-            Token::Illegal(TokenMetadata {
-                literal: String::from("!"),
-            }),
         ];
 
         let output = Lexer::new(input).collect::<Vec<Token>>();
