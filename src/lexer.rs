@@ -122,6 +122,8 @@ impl Iterator for Lexer {
                     return Some(symbol_token);
                 }
 
+                self.cursor += 1;
+
                 Some(Token::Illegal(TokenMetadata {
                     literal: String::from(curr.to_owned()),
                 }))
@@ -257,6 +259,9 @@ mod tests {
             }),
             Token::Semicolon(TokenMetadata {
                 literal: String::from(";"),
+            }),
+            Token::Illegal(TokenMetadata {
+                literal: String::from("!"),
             }),
         ];
 
