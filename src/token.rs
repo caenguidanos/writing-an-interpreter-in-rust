@@ -2,7 +2,7 @@
 pub enum Token {
     Assign,
     Comma,
-    Function(Vec<u8>),
+    Function,
     Identifier(Vec<u8>),
     Illegal(Vec<u8>),
     Integer(Vec<u8>),
