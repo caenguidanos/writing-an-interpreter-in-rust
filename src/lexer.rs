@@ -17,36 +17,6 @@ impl<'a> Lexer<'a> {
     fn is_alphabetic(byte: &u8) -> bool {
         byte.is_ascii_alphabetic() || *byte == b'_'
     }
-
-    fn is_whitespace(byte: &u8) -> bool {
-        byte.is_ascii_whitespace()
-    }
-
-    fn is_digit(byte: &u8) -> bool {
-        byte.is_ascii_digit()
-    }
-
-    fn handle_symbol(byte: u8) -> Token {
-        match byte {
-            b'=' => Token::Assign,
-            b',' => Token::Comma,
-            b'{' => Token::LeftBrace,
-            b'(' => Token::LeftParen,
-            b'+' => Token::Plus,
-            b'}' => Token::RightBrace,
-            b')' => Token::RightParen,
-            b';' => Token::Semicolon,
-            _ => Token::Illegal(vec![byte]),
-        }
-    }
-
-    fn handle_ident(bytes: Vec<u8>) -> Option<Token> {
-        return match bytes.as_slice() {
-            b"fn" => Some(Token::Function),
-            b"let" => Some(Token::Let),
-            _ => Some(Token::Identifier(bytes)),
-        };
-    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -55,7 +25,7 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.bytes.get(self.cursor) {
             Some(mut curr) => {
-                while Self::is_whitespace(curr) {
+                while curr.is_ascii_whitespace() {
                     self.move_step();
 
                     if let Some(next) = self.bytes.get(self.cursor) {
@@ -80,13 +50,22 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
 
-                    return Self::handle_ident(bytes);
+                    return Some(match bytes.as_slice() {
+                        b"fn" => Token::Function,
+                        b"let" => Token::Let,
+                        b"true" => Token::True,
+                        b"false" => Token::False,
+                        b"if" => Token::If,
+                        b"else" => Token::Else,
+                        b"return" => Token::Return,
+                        _ => Token::Identifier(bytes),
+                    });
                 }
 
-                if Self::is_digit(curr) {
+                if curr.is_ascii_digit() {
                     let mut bytes = Vec::new();
 
-                    while Self::is_digit(curr) {
+                    while curr.is_ascii_digit() {
                         self.move_step();
 
                         bytes.push(curr.to_owned());
@@ -103,7 +82,40 @@ impl<'a> Iterator for Lexer<'a> {
 
                 self.move_step();
 
-                Some(Self::handle_symbol(curr.to_owned()))
+                match curr {
+                    b'=' | b'!' => {
+                        if let Some(next) = self.bytes.get(self.cursor) {
+                            if *next == b'=' {
+                                self.move_step();
+
+                                return match *curr {
+                                    b'=' => Some(Token::Equal),
+                                    b'!' => Some(Token::NotEqual),
+                                    _ => unimplemented!(),
+                                };
+                            }
+                        }
+
+                        match *curr {
+                            b'=' => Some(Token::Assign),
+                            b'!' => Some(Token::Bang),
+                            _ => unimplemented!(),
+                        }
+                    }
+                    b'*' => Some(Token::Asterisk),
+                    b',' => Some(Token::Comma),
+                    b'>' => Some(Token::GT),
+                    b'{' => Some(Token::LeftBrace),
+                    b'(' => Some(Token::LeftParen),
+                    b'<' => Some(Token::LT),
+                    b'+' => Some(Token::Plus),
+                    b'-' => Some(Token::Minus),
+                    b'}' => Some(Token::RightBrace),
+                    b')' => Some(Token::RightParen),
+                    b';' => Some(Token::Semicolon),
+                    b'/' => Some(Token::Slash),
+                    _ => Some(Token::Illegal(vec![curr.to_owned()])),
+                }
             }
             _ => None,
         }
@@ -112,17 +124,18 @@ impl<'a> Iterator for Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    extern crate test;
-
     use std::hint::black_box;
     use test::Bencher;
+
+    use pretty_assertions::assert_eq;
 
     use crate::lexer::Lexer;
     use crate::token::Token;
 
-    #[test]
-    fn next() {
-        let input = r#"
+    extern crate test;
+
+    fn provide_input() -> &'static str {
+        r#"
             let five = 5;
             let ten = 10;
 
@@ -131,9 +144,23 @@ mod tests {
             };
 
             let result = add(five, ten);
-        "#;
+            !-/*5;
+            5 < 10 > 5;
+            
+            if (5 < 10) {
+                return true;
+            } else {
+                return false;
+            }
+            
+            10 == 10;
+            10 != 9;
+        "#
+    }
 
-        let bytes = input.bytes().collect::<Vec<u8>>();
+    #[test]
+    fn next() {
+        let bytes = provide_input().bytes().collect::<Vec<u8>>();
 
         let expected_output = vec![
             Token::Let,
@@ -172,6 +199,43 @@ mod tests {
             Token::Identifier(b"ten".to_vec()),
             Token::RightParen,
             Token::Semicolon,
+            Token::Bang,
+            Token::Minus,
+            Token::Slash,
+            Token::Asterisk,
+            Token::Integer(b"5".to_vec()),
+            Token::Semicolon,
+            Token::Integer(b"5".to_vec()),
+            Token::LT,
+            Token::Integer(b"10".to_vec()),
+            Token::GT,
+            Token::Integer(b"5".to_vec()),
+            Token::Semicolon,
+            Token::If,
+            Token::LeftParen,
+            Token::Integer(b"5".to_vec()),
+            Token::LT,
+            Token::Integer(b"10".to_vec()),
+            Token::RightParen,
+            Token::LeftBrace,
+            Token::Return,
+            Token::True,
+            Token::Semicolon,
+            Token::RightBrace,
+            Token::Else,
+            Token::LeftBrace,
+            Token::Return,
+            Token::False,
+            Token::Semicolon,
+            Token::RightBrace,
+            Token::Integer(b"10".to_vec()),
+            Token::Equal,
+            Token::Integer(b"10".to_vec()),
+            Token::Semicolon,
+            Token::Integer(b"10".to_vec()),
+            Token::NotEqual,
+            Token::Integer(b"9".to_vec()),
+            Token::Semicolon,
         ];
 
         assert_eq!(
@@ -182,18 +246,7 @@ mod tests {
 
     #[bench]
     fn bench_next(b: &mut Bencher) {
-        let input = r#"
-            let five = 5;
-            let ten = 10;
-
-            let add = fn(x, y) {
-                x + y;
-            };
-
-            let result = add(five, ten);
-        "#;
-
-        let bytes = input.bytes().collect::<Vec<u8>>();
+        let bytes = provide_input().bytes().collect::<Vec<u8>>();
         let bytes_as_slice = bytes.as_slice();
 
         b.iter(|| {
