@@ -38,7 +38,7 @@ impl<'a> Iterator for Lexer<'a> {
                 if Self::is_alphabetic(curr) {
                     let mut bytes = Vec::new();
 
-                    while Self::is_alphabetic(curr) {
+                    while Self::is_alphabetic(curr) || curr.is_ascii_digit() {
                         self.move_step();
 
                         bytes.push(curr.to_owned());
