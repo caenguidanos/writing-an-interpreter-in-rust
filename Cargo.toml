@@ -1,6 +1,9 @@
 [workspace]
+
 resolver = "2"
+
 members = [
     "lexer",
-    "repl"
+    "repl",
+    "tests"
 ]

@@ -1,7 +1,3 @@
-#![feature(test)]
-
-extern crate core;
-
 pub use lexer::*;
 pub use token::*;
 
