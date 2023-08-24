@@ -143,7 +143,7 @@ mod tests {
                 x + y;
             };
 
-            let result = add(five, ten);
+            let result2 = add(five, ten);
             !-/*5;
             5 < 10 > 5;
             
@@ -190,7 +190,7 @@ mod tests {
             Token::RightBrace,
             Token::Semicolon,
             Token::Let,
-            Token::Identifier(b"result".to_vec()),
+            Token::Identifier(b"result2".to_vec()),
             Token::Assign,
             Token::Identifier(b"add".to_vec()),
             Token::LeftParen,
