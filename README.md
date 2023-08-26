@@ -2,12 +2,16 @@
 
 ```bash
 cargo run -p repl
-
-cargo test -p lexer
 ```
 
 ## Test the lexer
 
 ```bash
 cargo test -p lexer
+```
+
+## Benchmarks
+
+```bash
+cargo bench -p benchmarks
 ```

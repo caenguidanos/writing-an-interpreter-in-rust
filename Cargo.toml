@@ -6,5 +6,7 @@ members = [
     "lexer",
     "repl",
     "token",
-    "benchmarks"
+    "benchmarks",
+    "ast",
+    "parser"
 ]

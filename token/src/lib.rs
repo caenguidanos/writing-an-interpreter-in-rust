@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Assign,
@@ -29,4 +31,40 @@ pub enum Token {
     Semicolon,
     Slash,
     True,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::Assign => write!(f, "="),
+            Token::Asterisk => write!(f, "*"),
+            Token::Bang => write!(f, "!"),
+            Token::Comma => write!(f, ","),
+            Token::Else => write!(f, "else"),
+            Token::Equal => write!(f, "=="),
+            Token::False => write!(f, "false"),
+            Token::Function => write!(f, "fn"),
+            Token::GreaterThan => write!(f, ">"),
+            Token::GreaterThanOrEqual => write!(f, ">="),
+            Token::Identifier(literal) => write!(f, "{}", String::from_utf8_lossy(literal)),
+            Token::If => write!(f, "if"),
+            Token::Illegal(literal) => write!(f, "{}", String::from_utf8_lossy(literal)),
+            Token::Integer(literal) => write!(f, "{}", String::from_utf8_lossy(literal)),
+            Token::LeftBrace => write!(f, "{{"),
+            Token::Let => write!(f, "let"),
+            Token::LeftParen => write!(f, "("),
+            Token::LessThan => write!(f, "<"),
+            Token::LessThanOrEqual => write!(f, "<="),
+            Token::Minus => write!(f, "-"),
+            Token::NotEqual => write!(f, "!="),
+            Token::Plus => write!(f, "+"),
+            Token::Pow => write!(f, "**"),
+            Token::Return => write!(f, "return"),
+            Token::RightBrace => write!(f, "}}"),
+            Token::RightParen => write!(f, ")"),
+            Token::Semicolon => write!(f, ";"),
+            Token::Slash => write!(f, "/"),
+            Token::True => write!(f, "true"),
+        }
+    }
 }
