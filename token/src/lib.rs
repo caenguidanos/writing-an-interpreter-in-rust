@@ -1,4 +1,4 @@
-#[derive(PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Assign,
     Asterisk,
@@ -8,7 +8,8 @@ pub enum Token {
     Equal,
     False,
     Function,
-    GT,
+    GreaterThan,
+    GreaterThanOrEqual,
     Identifier(Vec<u8>),
     If,
     Illegal(Vec<u8>),
@@ -16,10 +17,12 @@ pub enum Token {
     LeftBrace,
     Let,
     LeftParen,
-    LT,
+    LessThan,
+    LessThanOrEqual,
     Minus,
     NotEqual,
     Plus,
+    Pow,
     Return,
     RightBrace,
     RightParen,
